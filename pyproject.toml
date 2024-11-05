@@ -18,6 +18,10 @@ pydantic = "^2.9.2"
 sqlalchemy = "^2.0.36"
 psycopg2-binary = "^2.9.10"
 pandas = "^2.2.3"
+beautifulsoup4 = "^4.12.3"
+tqdm = "^4.66.6"
+dask = {extras = ["complete"], version = "^2024.10.0"}
+pymongo = "^4.10.1"
 
 
 [tool.poetry.group.dev.dependencies]

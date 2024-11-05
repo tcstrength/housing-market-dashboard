@@ -1,42 +1,62 @@
-from typing import List
+from typing import Any, List
 from lxml import html
 from pydantic import BaseModel
 from hmd.crawlers.base_crawler import BaseCrawler
+from bs4 import BeautifulSoup
+import re
+from datetime import datetime
+from hmd.crawlers.utils import *
 
 class DetailPageData(BaseModel):
     post_title: str
+    tags: list[str]
     post_desc: str
     address: str
-    last_update: str
-    params: dict[str, str]
+    last_update: datetime
+    params: dict[str, Any]
 
 class DetailPageCrawler(BaseCrawler):
     def crawl(self, url: str) -> List[DetailPageData]:
         html_content = self.get(url)
-        tree = html.fromstring(html_content)
-        xpath_post_title = "/html/body/div[1]/div/div[3]/div[1]/div/div[4]/div/div[2]/div/h1"
-        xpath_post_desc = "/html/body/div[1]/div/div[3]/div[1]/div/div[4]/div/div[4]/div/div[2]/p"
-        # xpath_address = "/html/body/div[1]/div/div[3]/div[1]/div/div[4]/div/div[2]/div/div[2]"
-        # xpath_address = "/html/body/div[1]/div/div[3]/div[1]/div/div[4]/div/div[2]/div/div[2]/div[1]/span[2]"
-        xpath_overview = """//span[contains(@class, "bwq0cbs")]"""
-        xpath_params = "/html/body/div[1]/div/div[3]/div[1]/div/div[4]/div/div[3]/div[2]/div[*]"
+        # Parse the HTML content with BeautifulSoup
+        soup = BeautifulSoup(html_content, 'html.parser')
 
-        post_title = self.extract_text(tree.xpath(xpath_post_title))
-        post_desc = self.extract_text(tree.xpath(xpath_post_desc))
-
-        overview = tree.xpath(xpath_overview)
-        address = self.extract_text([overview[-2]])
-        last_update = self.extract_text([overview[-1]])
+        detail_container = soup.find('div', class_=re.compile(r'DetailView_adviewCointainer'))
         
-        params = tree.xpath(xpath_params)
-        # Có vài trường hợp nó chỉ show là Cho thuê/Mua bán, nên chỗ này thêm `:` để nó luôn
-        # chạy đúng
-        params = [(x.text_content()+":").split(":") for x in params]
-        params = {x[0]:x[1] for x in params}
+        title_element = detail_container.find('h1')
+        title = title_element.get_text(strip=True)
+
+        tag_element = title_element.find_next_sibling()
+        tags = tag_element.get_text(strip=True).split('•')
+
+        price_element = tag_element.find_next_sibling()
+
+        address_group = price_element.find_next_sibling()
+        span_elements = address_group.find_all("span")
+        address = span_elements[0].get_text(strip=True)
+
+        updated_time_str = span_elements[1].get_text(strip=True)
+        updated_time = get_update_time(updated_time_str)
+
+        param_container = detail_container.find('div', class_=re.compile(r'AdParam_adParamContainerPty'))
+        param_items = param_container.find_all("div", class_=re.compile(r'AdParam_adParamItemPty'))
+        # Parse each parameter item into a list of dictionaries
+        params = {}
+        for item in param_items:
+            # Use itemprop attribute as the key if it exists
+            key = item.find("strong").get("itemprop")
+            value_text = item.find("strong", class_=re.compile(r"AdParam_adParamValuePty")).get_text(strip=True)
+            value = parse_value(value_text)
+            params[key] = value
+
+        desc_element = detail_container.find('p', class_=re.compile(r"adBody"))
+        desc = desc_element.get_text(strip=True)
+
         return DetailPageData(
-            post_title=post_title,
-            post_desc=post_desc,
+            post_title=title,
+            tags=tags,
+            post_desc=desc,
             address=address,
-            last_update=last_update,
+            last_update=updated_time,
             params=params
         )

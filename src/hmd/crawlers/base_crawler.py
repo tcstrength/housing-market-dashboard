@@ -1,6 +1,5 @@
 import requests
 from abc import abstractmethod
-from selenium import webdriver
 
 class BaseCrawler:
     def get(self, url: str) -> str:
@@ -23,4 +22,4 @@ class BaseCrawler:
     
     @abstractmethod
     def crawl(self, url: str):
-        pass    
+        pass
