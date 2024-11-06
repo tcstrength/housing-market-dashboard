@@ -16,11 +16,12 @@ class ListPageCrawler(BaseCrawler):
         html_content = self.get(url)
         tree = html.fromstring(html_content)
         urls = tree.xpath('//a/@href')
-        filtered_urls = [url for url in urls if re.search(r"(mua-ban.+\.htm)", url)]
+        print(urls)
+        filtered_urls = [url for url in urls if re.search(r"(.+\.htm)", url)]
         filtered_urls = list(set(filtered_urls))
         result = []
         for url in filtered_urls:
-            match = re.search(r"(mua-ban.+\/)(\d+).htm", url)
+            match = re.search(r"(.+\/)(\d+).htm", url)
             if match:
                 if url.startswith("/"): 
                     url = f"{base_url}{url}"
