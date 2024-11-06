@@ -51,18 +51,30 @@ def add_post(engine: Engine, pending_post: PendingPostEntity, data: DetailPageDa
             s.add_all(params)
             s.commit()
         except Exception as e:
-            logger.info(f"Rollback dued to exception occured.")
+            logger.info(f"Rollback issued due to exception occured.")
             s.rollback()
             raise e
 
 def crawl_one_pending(engine: Engine, pending_post: PendingPostEntity):
     post_url = pending_post.post_url
+    post_id = pending_post.post_id
     crawler = DetailPageCrawler()
     try:
+        with Session(engine) as s:
+            exist = (
+                s.query(PostDetailEntity)
+                .filter(PostDetailEntity.post_id == post_id)
+                .count()
+            )
+
+            if exist > 0:
+                logger.info(f"PostDetail `{post_id}` already exists")
+                return
+
         data = crawler.crawl(post_url)
         add_post(engine, pending_post, data)
     except Exception as e:
-        logger.warning(e)
+        logger.warning(f"Failed to crawl PostDetail `{pending_post.post_id}`, url={post_url}, {e}")
 
 def crawl_pending_posts(engine: Engine):
     pending_posts = get_pending_posts(engine)
@@ -84,4 +96,3 @@ if __name__ == "__main__":
         ]
     )
     crawl_pending_posts(engine)
-    # update_pending_status(engine, 120631145, "S")
