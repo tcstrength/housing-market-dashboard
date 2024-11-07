@@ -106,6 +106,3 @@ if __name__ == "__main__":
         ]
     )
     crawl_async(engine)
-    # crawler = DetailPageCrawler()
-    # tmp = crawler.get("https://www.nhatot.com/mua-ban-nha-dat-quan-tan-binh-tp-ho-chi-minh/120782782.htm")
-    # print(tmp)
