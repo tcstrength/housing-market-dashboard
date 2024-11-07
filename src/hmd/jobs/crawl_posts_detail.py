@@ -32,7 +32,9 @@ def add_post(engine: Engine, pending_post: PendingPostEntity, data: DetailPageDa
                 post_title=data.post_title,
                 post_desc=data.post_desc,
                 address=data.address,
-                tags=json.dumps(data.tags)
+                price_in_mil=data.price_in_mil,
+                tags=json.dumps(data.tags),
+                posted_at=int(data.last_update.timestamp())
             )
 
             tab = pending_post.__table__.name
@@ -59,6 +61,7 @@ def crawl_one_pending(engine: Engine, pending_post: PendingPostEntity):
     post_url = pending_post.post_url
     post_id = pending_post.post_id
     crawler = DetailPageCrawler()
+
     try:
         with Session(engine) as s:
             exist = (
@@ -73,16 +76,23 @@ def crawl_one_pending(engine: Engine, pending_post: PendingPostEntity):
 
         data = crawler.crawl(post_url)
         add_post(engine, pending_post, data)
+        logger.info(f"Crawled PostDetail `{post_id}` successfully.")
     except Exception as e:
-        logger.warning(f"Failed to crawl PostDetail `{pending_post.post_id}`, url={post_url}, {e}")
+        with Session(engine) as s:
+            tab = pending_post.__table__.name
+            stmt = f"UPDATE {tab} SET status = 'E' WHERE post_id = {post_id}"
+            s.execute(sa_text(stmt))
+            s.commit()
 
-def crawl_pending_posts(engine: Engine):
+        logger.warning(f"Failed to crawl PostDetail `{post_id}`, url={post_url}, {e}")
+
+def crawl_async(engine: Engine):
     pending_posts = get_pending_posts(engine)
     inputs = []
     for pending_post in pending_posts:
         inputs.append((engine, pending_post))
 
-    pool = ThreadPool(processes=8)
+    pool = ThreadPool(processes=4)
     pool.starmap(crawl_one_pending, inputs)
     pool.close()
     pool.join()
@@ -95,4 +105,7 @@ if __name__ == "__main__":
             PostParamEntity.__table__
         ]
     )
-    crawl_pending_posts(engine)
+    crawl_async(engine)
+    # crawler = DetailPageCrawler()
+    # tmp = crawler.get("https://www.nhatot.com/mua-ban-nha-dat-quan-tan-binh-tp-ho-chi-minh/120782782.htm")
+    # print(tmp)

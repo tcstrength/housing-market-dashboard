@@ -1,5 +1,6 @@
 from enum import Enum
 from loguru import logger
+from multiprocessing.pool import ThreadPool
 from sqlalchemy import create_engine
 from sqlalchemy import Engine
 from sqlalchemy.orm import Session
@@ -55,8 +56,20 @@ def crawl_page(engine: Engine, page_no: int, list_type: ListType):
         except Exception as e:
             logger.warning(e)
 
+def crawl_async(engine: Engine):
+    inputs = []
+    for i in range(1000):
+        inputs.append((engine, i+1, ListType.RENTAL))
+        inputs.append((engine, i+1, ListType.SALES))
+
+    pool = ThreadPool(processes=4)
+    pool.starmap(crawl_page, inputs)
+    pool.close()
+    pool.join()
+
+
 if __name__ == "__main__":
     engine = create_engine(app_config.POSTGRES_CONN)
     BaseEntity.metadata.create_all(engine, tables=[PendingPostEntity.__table__])
-    crawl_page(engine, 1, ListType.RENTAL)
-    crawl_page(engine, 1, ListType.SALES)
+    crawl_async(engine)
+        

@@ -31,6 +31,17 @@ def get_update_time(ago_time_string):
     
     return updated_time
 
+def get_price_in_mil(price_str):
+    price, unit = price_str.split(" ")
+    price = float(price.replace(",", "."))
+    if unit == "tỷ":
+        price = price * 1000
+    elif unit == "triệu":
+        price = price * 1
+    elif unit == "nghìn":
+        price = price / 1000
+    return price
+
 # Helper function to try converting text to a float, or return text if not possible
 def parse_value(value_text):
     match = re.search(r'(\d+,\d+|\d+)', value_text)

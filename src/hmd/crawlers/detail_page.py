@@ -12,6 +12,7 @@ class DetailPageData(BaseModel):
     tags: list[str]
     post_desc: str
     address: str
+    price_in_mil: float
     last_update: datetime
     params: dict[str, Any]
 
@@ -30,6 +31,7 @@ class DetailPageCrawler(BaseCrawler):
         tags = tag_element.get_text(strip=True).split('•')
 
         price_element = tag_element.find_next_sibling()
+        price = get_price_in_mil(price_element.get_text(strip=True).split("•")[0])
 
         address_group = price_element.find_next_sibling()
         span_elements = address_group.find_all("span")
@@ -57,6 +59,7 @@ class DetailPageCrawler(BaseCrawler):
             tags=tags,
             post_desc=desc,
             address=address,
+            price_in_mil=price,
             last_update=updated_time,
             params=params
         )

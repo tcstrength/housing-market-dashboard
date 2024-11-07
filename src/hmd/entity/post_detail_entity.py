@@ -12,5 +12,7 @@ class PostDetailEntity(BaseEntity):
     post_title: Mapped[str] = mapped_column(String(1024))
     post_type: Mapped[str] = mapped_column(String(16))
     post_desc: Mapped[str] = mapped_column(Text)
+    price_in_mil: Mapped[int] = mapped_column(Integer)
     address: Mapped[str] = mapped_column(String(255))
     tags: Mapped[str] = mapped_column(String(255))
+    posted_at: Mapped[int] = mapped_column(Integer)
