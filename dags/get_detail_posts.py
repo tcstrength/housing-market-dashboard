@@ -14,23 +14,10 @@ def get_detail_posts():
 
     @task
     def crawl_detail_posts():
-        from src.hmd.core.app_config import POSTGRES_CONN
-        from src.hmd.entity.base_entity import BaseEntity
-        from src.hmd.entity.post_detail_entity import PostDetailEntity
-        from src.hmd.entity.post_param_entity import PostParamEntity
-        from sqlalchemy import create_engine
-        from hmd.jobs.crawl_posts_detail import crawl_async
+        from hmd.jobs.crawl_posts_detail import main
         from airflow.models import Variable
-
-        num_posts = int(Variable.get("NUM_POSTS", 300))
-        engine = create_engine(POSTGRES_CONN)
-        BaseEntity.metadata.create_all(
-            engine, tables=[
-                PostDetailEntity.__table__,
-                PostParamEntity.__table__
-            ]
-        )
-        results = crawl_async(engine, limit=num_posts)
+        num_posts = int(Variable.get("NUM_POSTS", 100))
+        results = main(num_posts)
         return results
 
     @task

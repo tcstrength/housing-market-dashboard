@@ -79,10 +79,10 @@ def crawl_async(engine, num_pages):
     return results
 
 
-if __name__ == "__main__":
+def main(num_pages):
     engine = create_engine(app_config.POSTGRES_CONN)
     # BaseEntity.metadata.create_all(engine, tables=[PendingPostEntity.__table__])
-    results = crawl_async(engine, 4)
+    results = crawl_async(engine, num_pages)
     success = 0
     fails = 0
     for result in results:

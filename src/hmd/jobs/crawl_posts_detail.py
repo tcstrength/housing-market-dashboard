@@ -6,6 +6,7 @@ from sqlalchemy import text as sa_text
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session
 from hmd.core import app_config
+from hmd.crawlers.base_crawler import CrawlMethod
 from hmd.crawlers.detail_page import DetailPageCrawler
 from hmd.crawlers.detail_page import DetailPageData
 from hmd.entity.base_entity import BaseEntity
@@ -72,7 +73,11 @@ def add_post(engine, pending_post: PendingPostEntity, data: DetailPageData):
 def crawl_one_pending(engine, pending_post: PendingPostEntity):
     post_url = pending_post.post_url
     post_id = pending_post.post_id
-    crawler = DetailPageCrawler()
+    crawler = DetailPageCrawler(
+        crawl_method=CrawlMethod.FLARESOLVERR,
+        flaresolverr_url=app_config.FLARESOLVERR_URL
+    )
+    
     SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
     s = SessionLocal()
     result = None
@@ -122,7 +127,7 @@ def crawl_async(engine, limit=300):
     pool.join()
     return results
 
-if __name__ == "__main__":
+def main(limit: int):
     engine = create_engine(app_config.POSTGRES_CONN)
     BaseEntity.metadata.create_all(
         engine, tables=[
@@ -131,5 +136,9 @@ if __name__ == "__main__":
             CrawlErrorEntity.__table__
         ]
     )
-    results = crawl_async(engine, limit=10)
-    print(results)
+    results = crawl_async(engine, limit=limit)
+    return results
+
+if __name__ == "__main__":
+    main(1)
+    

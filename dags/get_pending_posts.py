@@ -14,17 +14,10 @@ def get_pending_posts():
 
     @task
     def crawl_posts():
-        from src.hmd.core.app_config import POSTGRES_CONN
-        from src.hmd.entity.base_entity import BaseEntity
-        from src.hmd.entity.pending_post_entity import PendingPostEntity
-        from sqlalchemy import create_engine
-        from hmd.jobs.crawl_pending_posts import crawl_async
+        from hmd.jobs.crawl_pending_posts import main
         from airflow.models import Variable
-
-        num_pages = int(Variable.get("NUM_PAGES", 100))
-        engine = create_engine(POSTGRES_CONN)
-        BaseEntity.metadata.create_all(engine, tables=[PendingPostEntity.__table__])
-        results = crawl_async(engine, num_pages)
+        num_pages = int(Variable.get("NUM_PAGES", 4))
+        results = main(num_pages)
         return results
 
     @task
