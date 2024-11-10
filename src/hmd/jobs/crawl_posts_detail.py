@@ -17,6 +17,7 @@ from hmd.entity.post_param_entity import PostParamEntity
 from sqlalchemy.orm import sessionmaker
 
 def get_pending_posts(engine, limit):
+    logger.info(f"Retrieve up to {limit} pending posts.")
     SessionLocal = sessionmaker(bind=engine)
     session = SessionLocal()
     result = None
@@ -73,6 +74,7 @@ def add_post(engine, pending_post: PendingPostEntity, data: DetailPageData):
 def crawl_one_pending(engine, pending_post: PendingPostEntity):
     post_url = pending_post.post_url
     post_id = pending_post.post_id
+    logger.info(f"Crawl {post_url}...")
     crawler = DetailPageCrawler(
         crawl_method=CrawlMethod.FLARESOLVERR,
         flaresolverr_url=app_config.FLARESOLVERR_URL
@@ -115,19 +117,19 @@ def crawl_one_pending(engine, pending_post: PendingPostEntity):
         s.close()
     return result
 
-def crawl_async(engine, limit=300):
-    pending_posts = get_pending_posts(engine, limit)
+def crawl_async(engine, num_posts, num_crawlers):
+    pending_posts = get_pending_posts(engine, num_posts, num_crawlers)
     inputs = []
     for pending_post in pending_posts:
         inputs.append((engine, pending_post))
 
-    pool = ThreadPool(processes=4)
+    pool = ThreadPool(processes=num_crawlers)
     results = pool.starmap(crawl_one_pending, inputs)
     pool.close()
     pool.join()
     return results
 
-def main(limit: int):
+def main(num_posts: int, num_crawlers: int = 4):
     engine = create_engine(app_config.POSTGRES_CONN)
     BaseEntity.metadata.create_all(
         engine, tables=[
@@ -136,7 +138,7 @@ def main(limit: int):
             CrawlErrorEntity.__table__
         ]
     )
-    results = crawl_async(engine, limit=limit)
+    results = crawl_async(engine, num_posts=num_posts, num_crawlers=num_crawlers)
     return results
 
 if __name__ == "__main__":

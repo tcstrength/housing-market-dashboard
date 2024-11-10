@@ -1,6 +1,7 @@
 import requests
 from enum import Enum
 from abc import abstractmethod
+from loguru import logger
 
 class CrawlMethod(Enum):
     FLARESOLVERR = "flaresolverr"
@@ -21,7 +22,7 @@ class BaseCrawler:
                     "the `flaresolverr_url` must not be None."
                 ))
             
-            print(self._flaresolverr_url)
+            logger.debug(f"Use flaresolverr={self._flaresolverr_url}")
         
     def get(self, url: str) -> str:
         if self._crawl_method == CrawlMethod.BASIC:

@@ -16,8 +16,10 @@ def get_detail_posts():
     def crawl_detail_posts():
         from hmd.jobs.crawl_posts_detail import main
         from airflow.models import Variable
+        
+        num_crawlers = int(Variable.get("NUM_CRAWLERS", 4))
         num_posts = int(Variable.get("NUM_POSTS", 100))
-        results = main(num_posts)
+        results = main(num_posts, num_crawlers)
         return results
 
     @task
