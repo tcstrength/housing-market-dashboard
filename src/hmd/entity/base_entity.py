@@ -1,8 +1,9 @@
 from datetime import datetime
 from sqlalchemy import Integer
-from sqlalchemy.orm import DeclarativeBase
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy import Column, Integer
+from sqlalchemy.ext.declarative import as_declarative
 
-class BaseEntity(DeclarativeBase):
-    created_at: Mapped[int] = mapped_column(Integer, default=int(datetime.now().timestamp()))
-    updated_at: Mapped[int] = mapped_column(Integer, default=int(datetime.now().timestamp()))
+@as_declarative()
+class BaseEntity(object):
+    created_at = Column(Integer, default=int(datetime.now().timestamp()))
+    updated_at = Column(Integer, default=int(datetime.now().timestamp()))
