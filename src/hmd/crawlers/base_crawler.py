@@ -13,7 +13,9 @@ class BaseCrawler:
         }
 
         response = requests.get(url, headers=headers)
-        return response.text
+        # Store the context to retrieve and log if error occurs
+        self._ctx_html_content = response.text
+        return self._ctx_html_content
     
     def extract_text(self, elms: list):
         text = "".join([x.text_content() for x in elms])

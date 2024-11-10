@@ -1,4 +1,5 @@
 import json
+import traceback
 from loguru import logger
 from multiprocessing.pool import ThreadPool
 from sqlalchemy import text as sa_text
@@ -10,14 +11,16 @@ from hmd.crawlers.detail_page import DetailPageCrawler
 from hmd.crawlers.detail_page import DetailPageData
 from hmd.entity.base_entity import BaseEntity
 from hmd.entity.pending_post_entity import PendingPostEntity
+from hmd.entity.crawl_error_entity import CrawlErrorEntity
 from hmd.entity.post_detail_entity import PostDetailEntity
 from hmd.entity.post_param_entity import PostParamEntity
 
-def get_pending_posts(engine: Engine):
+def get_pending_posts(engine: Engine, limit: int = 500):
     with Session(engine) as session:
         result = (
             session.query(PendingPostEntity)
             .filter(PendingPostEntity.status == "P")
+            .limit(limit)
             .all()
         )
         return result
@@ -78,13 +81,23 @@ def crawl_one_pending(engine: Engine, pending_post: PendingPostEntity):
         add_post(engine, pending_post, data)
         logger.info(f"Crawled PostDetail `{post_id}` successfully.")
     except Exception as e:
+        trace_str = traceback.format_exc()
         with Session(engine) as s:
             tab = pending_post.__table__.name
             stmt = f"UPDATE {tab} SET status = 'E' WHERE post_id = {post_id}"
+            log = CrawlErrorEntity(
+                post_id=post_id,
+                crawl_error=trace_str,
+                html_content=crawler._ctx_html_content
+            )
+            s.add(log)
             s.execute(sa_text(stmt))
+            s.flush()
+            s.refresh(log)
+            s.expunge(log)
             s.commit()
 
-        logger.warning(f"Failed to crawl PostDetail `{post_id}`, url={post_url}, {e}")
+        logger.warning(f"Failed to crawl PostDetail `{post_id}`, url={post_url}, for more details, please check out the log with id=`{log.log_id}`")
 
 def crawl_async(engine: Engine):
     pending_posts = get_pending_posts(engine)
@@ -102,7 +115,8 @@ if __name__ == "__main__":
     BaseEntity.metadata.create_all(
         engine, tables=[
             PostDetailEntity.__table__,
-            PostParamEntity.__table__
+            PostParamEntity.__table__,
+            CrawlErrorEntity.__table__
         ]
     )
     crawl_async(engine)
