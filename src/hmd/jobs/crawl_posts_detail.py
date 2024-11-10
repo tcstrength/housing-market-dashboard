@@ -118,7 +118,7 @@ def crawl_one_pending(engine, pending_post: PendingPostEntity):
     return result
 
 def crawl_async(engine, num_posts, num_crawlers):
-    pending_posts = get_pending_posts(engine, num_posts, num_crawlers)
+    pending_posts = get_pending_posts(engine, num_posts)
     inputs = []
     for pending_post in pending_posts:
         inputs.append((engine, pending_post))
